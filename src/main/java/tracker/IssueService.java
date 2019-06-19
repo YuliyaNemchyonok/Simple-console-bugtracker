@@ -1,10 +1,12 @@
 package tracker;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.*;
 
 public interface IssueService {
     ArrayList<Issue> getListOfIssues();
+
+    Issue findIssueById(int id);
 
     Issue findIssueByTitle(String title);
 
@@ -12,5 +14,9 @@ public interface IssueService {
 
     boolean removeIssue(Issue issue);
 
+    List<Issue> getIssuesForProject(Project project);
+
     void clearIssueList();
+
+    int countIssues();
 }

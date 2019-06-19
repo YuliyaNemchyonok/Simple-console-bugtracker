@@ -2,7 +2,7 @@ package tracker;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.*;
 
 public class Issues implements IssueService, Serializable {
     private ArrayList<Issue> issues;
@@ -22,6 +22,16 @@ public class Issues implements IssueService, Serializable {
     @Override
     public ArrayList<Issue> getListOfIssues() {
         return this.issues;
+    }
+
+    @Override
+    public Issue findIssueById(int id) {
+        for (Issue issue : issues) {
+            if (issue.getID()==id) {
+                return issue;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -51,7 +61,25 @@ public class Issues implements IssueService, Serializable {
     }
 
     @Override
+    public List<Issue> getIssuesForProject(Project project) {
+        List<Issue> projectIssues = new ArrayList<>();
+        for (Issue issue : issues) {
+            if (issue.getProject()==project) {
+                projectIssues.add(issue);
+            }
+        }
+        return projectIssues;
+    }
+
+    @Override
     public void clearIssueList() {
         issues.clear();
     }
+
+    @Override
+    public int countIssues() {
+        return count;
+    }
+
+
 }

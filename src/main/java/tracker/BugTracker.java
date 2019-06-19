@@ -75,6 +75,9 @@ public class BugTracker implements Serializable{
             while (user != null & !quit) {
                 command = console.readLine("> ");
                 switch (command) {
+                    case "help":
+                        printHelp();
+                        break;
                     case "q":
                         console.printf("Goodbye!\n");
                         quit = true;
@@ -110,6 +113,9 @@ public class BugTracker implements Serializable{
                         }
                         break;
                     case "cia":
+                        if (!changeAssigner(user)) {
+                            console.printf("Something went wrong\n");
+                        }
                         break;
                     case "cis":
                         break;
@@ -425,6 +431,131 @@ public class BugTracker implements Serializable{
         return true;
     }
 
+    public boolean changeAssigner(User user) {
+        boolean endLoop = false;
+        Issue issue = null;
+        while(!endLoop) {
+            System.console().printf("Choose issue from project of from list of issues? (project|list)\n");
+            String choice = System.console().readLine("> ");
+            String issueId;
+            switch (choice) {
+                case "project":
+                    Project project = null;
+                    showAllProjects();
+                    boolean endProjectLoop = false;
+                    while (!endProjectLoop) {
+                        String projectId = System.console().readLine("Project id: ");
+                        if (projectId.matches("\\d+") && Integer.parseInt(projectId) <= projectService.countProjects()) {
+                            project = projectService.findProjectById(Integer.parseInt(projectId));
+                        } else {
+                            System.console().printf("Wrong id.\n");
+                        }
+                        if (project == null) {
+                            System.console().printf("Project not found. Try again? (y|n)");
+                            String again = System.console().readLine("> ");
+                            if (!again.equals("y")) {
+                                break;
+                            } else {
+                                endProjectLoop = false;
+                            }
+                        } else {
+                            endProjectLoop = true;
+                        }
+                    }
+                    showIssuesForProject(project);
+                    issueId = System.console().readLine("Issue id: ");
+                    if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
+                        issue = issueService.findIssueById(Integer.parseInt(issueId));
+                    } else {
+                        System.console().printf("Wrong id.\n");
+                    }
+                    break;
+                case "list":
+                    showAllIssues();
+                    issueId = System.console().readLine("Issue id: ");
+                    if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
+                        issue = issueService.findIssueById(Integer.parseInt(issueId));
+                    } else {
+                        System.console().printf("Wrong id.\n");
+                    }
+                    break;
+                case "q":
+                    endLoop = true;
+                    break;
+                default:
+                    System.console().printf("Unknown operation. Try again.\n");
+                    break;
+            }
+            if (issue == null) {
+                System.console().printf("Issue not found. Try again? (y|n)\n");
+                String again = System.console().readLine("> ");
+                if (!again.equals("y")) {
+                    return false;
+                } else {
+                    endLoop = false;
+                }
+            } else {
+                endLoop = true;
+            }
+        }
+        Project project = issue.getProject();
+        boolean access = false;
+        for (User u : project.getMembers()) {
+            if (u == user) {
+                access = true;
+            }
+        }
+        if (access == false) {
+            System.console().printf("Sorry, only members of project '%s' can change assigners for its issues.\n", project.getName());
+            return false;
+        }
+
+        endLoop = false;
+        User assigner = null;
+        while (!endLoop) {
+            assigner = null;
+            System.console().printf("Choose assigner for the issue. Find user by id, name or login? (id|name|login)\n");
+            String choice = System.console().readLine("> ");
+            switch (choice) {
+                case "id":
+                    String id = System.console().readLine("id: ");
+                    if (id.matches("\\d+") && Integer.parseInt(id) <= userService.countUsers()) {
+                        assigner = userService.findUserById(Integer.parseInt(id));
+                    } else {
+                        System.console().printf("Wrong id.\n");
+                    }
+                    break;
+                case "name":
+                    String name = System.console().readLine("Name: ");
+                    assigner = userService.findUserByName(name);
+                    break;
+                case "login":
+                    String login = System.console().readLine("Login: ");
+                    assigner = userService.findUserByLogin(login);
+                    break;
+                case "q":
+                    endLoop = true;
+                    break;
+                default:
+                    System.console().printf("Unknown operation. Try again.\n");
+                    break;
+            }
+            if (assigner == null) {
+                System.console().printf("User not found. Try again? (y|n)\n");
+                String again = System.console().readLine("> ");
+                if (!again.equals("y")) {
+                    return false;
+                } else {
+                    endLoop = false;
+                }
+            } else {
+                System.console().printf("Issue '%s' of project '%s' assigned to the '%s' by '%s'.\n",issue.getTitle(),project.getName(),assigner.getLogin(),user.getLogin());
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void showAllProjects() {
 
         System.console().printf("|%-5s |%-20s |%-40s |%-30s|\n","ID", "Name", "Description", "Owner name (login)");
@@ -446,13 +577,25 @@ public class BugTracker implements Serializable{
 
     public void showAllIssues() {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
-        System.console().printf("|%-5s |%-20s |%-20s |%-20s |%-40s |%-20s |%-20s |%-10s |\n","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
-        System.console().printf("----------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+        System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-13s |%-10s |\n","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
+        System.console().printf("-----------------------------------------------------------------------------------------------------------------------------------------\n");
         for (Issue issue : issueService.getListOfIssues()) {
-            System.console().printf("|%-5s |%-20s |%-20s |%-20s |%-40s |%-20s |%-20s |%-10s |\n",
+            System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-13s |%-10s |\n",
                     issue.getID(), "№" + issue.getProjectId() + " " + issue.getProject().getName(), issue.getOwner().getLogin(), issue.getTitle(), issue.getDescription(),
                     issue.getAssigner().getLogin(),issue.getCreationTime().format(dateTimeFormatter),issue.getStatus());
-            System.console().printf("|------|---------------------|---------------------|---------------------|-----------------------------------------|---------------------|---------------------|-----------|\n");
+            System.console().printf("|------|---------------------|----------------|----------------|-----------------------------------------|----------------|--------------|-----------|\n");
+        }
+    }
+
+    public void showIssuesForProject(Project project) {
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
+        System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-12s|%-10s |\n","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
+        System.console().printf("------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+        for (Issue issue : issueService.getIssuesForProject(project)) {
+            System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-12s|%-10s |\n",
+                    issue.getID(), " " + issue.getProjectId() + " " + issue.getProject().getName(), issue.getOwner().getLogin(), issue.getTitle(), issue.getDescription(),
+                    issue.getAssigner().getLogin(),issue.getCreationTime().format(dateTimeFormatter),issue.getStatus());
+            System.console().printf("|------|---------------------|----------------|----------------|-----------------------------------------|----------------|--------------|-----------|\n");
         }
     }
 

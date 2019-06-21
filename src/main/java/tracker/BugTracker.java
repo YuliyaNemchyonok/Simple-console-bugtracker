@@ -118,6 +118,9 @@ public class BugTracker implements Serializable{
                         }
                         break;
                     case "cis":
+                        if (!changeStatusOfIssue(user)) {
+                            console.printf("Something went wrong\n");
+                        }
                         break;
                     case "sp":
                         showAllProjects();
@@ -554,6 +557,145 @@ public class BugTracker implements Serializable{
             }
         }
         return false;
+    }
+
+    public boolean changeStatusOfIssue(User user) {
+        boolean endLoop = false;
+        Issue issue = null;
+        while(!endLoop) {
+            System.console().printf("Choose issue from project of from list of issues? (project|list)\n");
+            String choice = System.console().readLine("> ");
+            String issueId;
+            switch (choice) {
+                case "project":
+                    Project project = null;
+                    showAllProjects();
+                    boolean endProjectLoop = false;
+                    while (!endProjectLoop) {
+                        String projectId = System.console().readLine("Project id: ");
+                        if (projectId.matches("\\d+") && Integer.parseInt(projectId) <= projectService.countProjects()) {
+                            project = projectService.findProjectById(Integer.parseInt(projectId));
+                        } else {
+                            System.console().printf("Wrong id.\n");
+                        }
+                        if (project == null) {
+                            System.console().printf("Project not found. Try again? (y|n)");
+                            String again = System.console().readLine("> ");
+                            if (!again.equals("y")) {
+                                break;
+                            } else {
+                                endProjectLoop = false;
+                            }
+                        } else {
+                            endProjectLoop = true;
+                        }
+                    }
+                    showIssuesForProject(project);
+                    issueId = System.console().readLine("Issue id: ");
+                    if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
+                        issue = issueService.findIssueById(Integer.parseInt(issueId));
+                    } else {
+                        System.console().printf("Wrong id.\n");
+                    }
+                    break;
+                case "list":
+                    showAllIssues();
+                    issueId = System.console().readLine("Issue id: ");
+                    if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
+                        issue = issueService.findIssueById(Integer.parseInt(issueId));
+                    } else {
+                        System.console().printf("Wrong id.\n");
+                    }
+                    break;
+                case "q":
+                    endLoop = true;
+                    break;
+                default:
+                    System.console().printf("Unknown operation. Try again.\n");
+                    break;
+            }
+            if (issue == null) {
+                System.console().printf("Issue not found. Try again? (y|n)\n");
+                String again = System.console().readLine("> ");
+                if (!again.equals("y")) {
+                    return false;
+                } else {
+                    endLoop = false;
+                }
+            } else {
+                endLoop = true;
+            }
+        }
+        Project project = issue.getProject();
+        boolean access = false;
+        for (User u : project.getMembers()) {
+            if (u == user) {
+                access = true;
+            }
+        }
+        if (!access) {
+            System.console().printf("Sorry, only members of project '%s' can change statuses for its issues.\n", project.getName());
+            return false;
+        }
+
+        endLoop = false;
+        while (!endLoop) {
+            System.console().printf("Choose new status for issue.\n" +
+                    "1 -> TODO\n" +
+                    "2 -> IN_PROGRESS\n" +
+                    "3 -> DONE\n");
+            String strNumOfStatus = System.console().readLine("> ");
+            if (strNumOfStatus.matches("\\d+")) {
+                int numOfStatus = Integer.parseInt(strNumOfStatus);
+                switch (numOfStatus) {
+                    case 1:
+                        if (issue.getStatus()==Status.TODO) {
+                            System.console().printf("Issue '%s' already in %s status.\n",issue.getTitle(),issue.getStatus());
+                            endLoop =true;
+                            break;
+                        }
+                        issue.setStatus(Status.TODO);
+                        endLoop = true;
+                        break;
+                    case 2:
+                        if (issue.getStatus()==Status.IN_PROGRESS) {
+                            System.console().printf("Issue '%s' already in %s status.\n",issue.getTitle(),issue.getStatus());
+                            endLoop =true;
+                            break;
+                        }
+                        issue.setStatus(Status.IN_PROGRESS);
+                        endLoop = true;
+                        break;
+                    case 3:
+                        if (issue.getStatus()==Status.DONE) {
+                            System.console().printf("Issue '%s' already in %s status.\n",issue.getTitle(),issue.getStatus());
+                            endLoop =true;
+                            break;
+                        }
+                        issue.setStatus(Status.DONE);
+                        endLoop = true;
+                        break;
+                        default:
+                            System.console().printf("There is no option %s. Try again? (y|n)\n", numOfStatus);
+                            String again = System.console().readLine("> ");
+                            if (!again.matches("y")) {
+                                return false;
+                            } else {
+                                endLoop = false;
+                            }
+                            break;
+                }
+            } else {
+                System.console().printf("There is no option %s. Try again? (y|n)\n", strNumOfStatus);
+                String again = System.console().readLine("> ");
+                if (!again.matches("y")) {
+                    return false;
+                } else {
+                    endLoop = false;
+                }
+            }
+        }
+        return true;
     }
 
     public void showAllProjects() {

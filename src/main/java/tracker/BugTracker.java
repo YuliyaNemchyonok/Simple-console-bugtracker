@@ -18,7 +18,7 @@ public class BugTracker{
     private ProjectService projectService;
     private IssueService issueService;
 
-    BugTracker(UserService userService, ProjectService projectService, IssueService issueService) {
+    private BugTracker(UserService userService, ProjectService projectService, IssueService issueService) {
         log.debug("Start constructor");
         this.userService = userService;
         this.projectService = projectService;
@@ -45,10 +45,10 @@ public class BugTracker{
 
     }
 
-    public void runTracker() {
+    private void runTracker() {
         log.info("Start tracker");
         User user = null;
-        Boolean quit = false;
+        boolean quit = false;
 
         Console console = System.console();
         while (!quit) {
@@ -57,7 +57,7 @@ public class BugTracker{
             console.printf("%-5s %-5s %-12s\n", "", "li", "log in");
             console.printf("%-5s %-5s %-12s\n", "", "q", "quit");
 
-            String command = "";
+            String command;
             while (user == null & !quit) {
                 command = console.readLine("> ");
                 switch (command) {
@@ -77,7 +77,9 @@ public class BugTracker{
 
                 }
             }
-            log.info("User '" + user.getLogin() + "' logged in the system");
+            if (user != null) {
+                log.info("User '" + user.getLogin() + "' logged in the system");
+            }
 
             printHelp();
             while (user != null & !quit) {
@@ -150,7 +152,7 @@ public class BugTracker{
     }
 
 
-    public User registration(User user) {
+    private User registration(User user) {
         if (user!=null) {
             String lo = System.console().readLine("Logged in by \"%s\". Do you want to log out? (y|n)\n", user.getLogin());
             if (lo.equals("y")) {
@@ -182,7 +184,7 @@ public class BugTracker{
         return user;
     }
 
-    public User logIn(User user) {
+    private User logIn(User user) {
         if (user != null) {
             String lo = System.console().readLine("Logged in by \"%s\". Do you want to log out? (y|n)\n", user.getLogin());
             if (lo.equals("y")) {
@@ -217,7 +219,7 @@ public class BugTracker{
         return user;
     }
 
-    public void printHelp() {
+    private void printHelp() {
         Console console = System.console();
         console.printf("List of commands for BugTracker:\n");
         console.printf("%-5s %-5s %-20s %-20s\n", "", "q", "quit", "");
@@ -235,7 +237,7 @@ public class BugTracker{
 
     }
 
-    public boolean createUser() {
+    private boolean createUser() {
         String name = System.console().readLine("Name: ");
         String login = System.console().readLine("Login: ");
         while (userService.findUserByLogin(login)!=null) {
@@ -250,7 +252,7 @@ public class BugTracker{
         return true;
     }
 
-    public boolean createProject(User user) {
+    private boolean createProject(User user) {
         String name = System.console().readLine("Name: ");
         while (projectService.findProjectByName(name) != null) {
             System.console().printf("Sorry, name \"%s\" occupied. Try again? (y|n)\n",name);
@@ -267,7 +269,7 @@ public class BugTracker{
         return true;
     }
 
-    public boolean addMembersToProject() {
+    private boolean addMembersToProject() {
         Project project = null;
         boolean endLoop = false;
         while (!endLoop) {
@@ -350,25 +352,17 @@ public class BugTracker{
             if (user == null) {
                 System.console().printf("User not found. Try again? (y|n)");
                 String again = System.console().readLine("> ");
-                if (!again.equals("y")) {
-                    endLoop = true;
-                } else {
-                    endLoop = false;
-                }
+                endLoop = !again.equals("y");
             } else {
                 System.console().printf("User added successfully. Add another one? (y|n)");
                 String anotherOne = System.console().readLine("> ");
-                if (!anotherOne.equals("y")) {
-                    endLoop = true;
-                } else {
-                    endLoop = false;
-                }
+                endLoop = !anotherOne.equals("y");
             }
         }
         return true;
     }
 
-    public boolean createIssue(User user) {
+    private boolean createIssue(User user) {
         Project project = null;
         boolean endLoop = false;
         while (!endLoop) {
@@ -407,7 +401,6 @@ public class BugTracker{
         endLoop = false;
         User assigner = null;
         while (!endLoop) {
-            assigner = null;
             System.console().printf("Choose assigner for the issue. Find user by id, name or login? (id|name|login)\n");
             String choice = System.console().readLine("> ");
             switch (choice) {
@@ -451,7 +444,7 @@ public class BugTracker{
         return true;
     }
 
-    public boolean changeAssigner(User user) {
+    private boolean changeAssigner(User user) {
         boolean endLoop = false;
         Issue issue = null;
         while(!endLoop) {
@@ -525,7 +518,7 @@ public class BugTracker{
                 access = true;
             }
         }
-        if (access == false) {
+        if (!access) {
             System.console().printf("Sorry, only members of project '%s' can change assigners for its issues.\n", project.getName());
             return false;
         }
@@ -563,11 +556,7 @@ public class BugTracker{
             if (assigner == null) {
                 System.console().printf("User not found. Try again? (y|n)\n");
                 String again = System.console().readLine("> ");
-                if (!again.equals("y")) {
-                    return false;
-                } else {
-                    endLoop = false;
-                }
+                endLoop = !again.equals("y");
             } else {
                 System.console().printf("Issue '%s' of project '%s' assigned to the '%s' by '%s'.\n",issue.getTitle(),project.getName(),assigner.getLogin(),user.getLogin());
                 return true;
@@ -576,7 +565,7 @@ public class BugTracker{
         return false;
     }
 
-    public boolean changeStatusOfIssue(User user) {
+    private boolean changeStatusOfIssue(User user) {
         boolean endLoop = false;
         Issue issue = null;
         while(!endLoop) {
@@ -715,7 +704,7 @@ public class BugTracker{
         return true;
     }
 
-    public void showProjects() {
+    private void showProjects() {
 
         System.console().printf("|%-5s |%-20s |%-40s |%-30s|\n","ID", "Name", "Description", "Owner name (login)");
         System.console().printf("--------------------------------------------------------------------------------------------------\n");
@@ -725,7 +714,7 @@ public class BugTracker{
         }
     }
 
-    public void showUsers() {
+    private void showUsers() {
         System.console().printf("|%-5s |%-30s |%-20s |\n","ID", "Name", "login");
         System.console().printf("--------------------------------------------------------------\n");
         for (User user : userService.getListOfUsers()) {
@@ -734,7 +723,7 @@ public class BugTracker{
         }
     }
 
-    public void showUsers(Project project) {
+    private void showUsers(Project project) {
         System.console().printf("|%-5s |%-30s |%-20s |\n","ID", "Name", "login");
         System.console().printf("--------------------------------------------------------------\n");
         for (User user : project.getMembers()) {
@@ -743,7 +732,7 @@ public class BugTracker{
         }
     }
 
-    public void showIssues() {
+    private void showIssues() {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
         System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-13s |%-11s |\n","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
         System.console().printf("-------------------------------------------------------------------------------------------------------------------------------------------------------\n");
@@ -755,7 +744,7 @@ public class BugTracker{
         }
     }
 
-    public void showIssues(Project project) {
+    private void showIssues(Project project) {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
         System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-12s|%-10s |\n","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
         System.console().printf("------------------------------------------------------------------------------------------------------------------------------------------------------\n");
@@ -767,7 +756,7 @@ public class BugTracker{
         }
     }
 
-    public void close(ArrayList<User> users, ArrayList<Project> projects, ArrayList<Issue> issues, String fileForUsers, String fileForProjects, String fileForIssues, String fileForProjectUserRelation) {
+    private void close(ArrayList<User> users, ArrayList<Project> projects, ArrayList<Issue> issues, String fileForUsers, String fileForProjects, String fileForIssues, String fileForProjectUserRelation) {
         try (CSVPrinter printer = new CSVPrinter(new FileWriter(fileForUsers), CSVFormat.DEFAULT.withHeader("id","name","login","password"))) {
             for (User user : users) {
                 printer.printRecord(user.getID(),user.getName(),user.getLogin(),user.getPassword());

@@ -2,6 +2,8 @@ package tracker;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.time.LocalDateTime;
@@ -9,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class DataLoader {
+    private static final Logger log = LogManager.getLogger(DataLoader.class.getName());
     ArrayList<ProjectRow> projectRows = new ArrayList<>();
     ArrayList<ProjectUserRelationRow> projectUserRelationRows = new ArrayList<>();
 
@@ -20,6 +23,7 @@ public class DataLoader {
     HashMap<Integer,Project> projectHashMap =  new HashMap<>();
 
     DataLoader(String fileForUsers, String fileForProjects, String fileForIssues, String fileForProjectUserRelation) {
+        log.debug("Start constructor");
         try {
             Reader in = new FileReader(fileForUsers);
             Iterable<CSVRecord> userRecords = CSVFormat.DEFAULT.withHeader("id","name","login","password").parse(in);

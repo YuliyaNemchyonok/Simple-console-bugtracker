@@ -2,6 +2,8 @@ package tracker;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.time.LocalDateTime;
@@ -9,12 +11,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 
-public class BugTracker implements Serializable{
+
+public class BugTracker{
+    private static final Logger log = LogManager.getLogger(BugTracker.class.getName());
     private UserService userService;
     private ProjectService projectService;
     private IssueService issueService;
 
     BugTracker(UserService userService, ProjectService projectService, IssueService issueService) {
+        log.debug("Start constructor");
         this.userService = userService;
         this.projectService = projectService;
         this.issueService = issueService;
@@ -22,6 +27,7 @@ public class BugTracker implements Serializable{
 
 
     public static void main(String[] args) {
+        log.info("Program start");
         String fileForUsers = "Users.csv";
         String fileForProjects = "Projects.csv";
         String fileForIssues = "Issues.csv";
@@ -40,6 +46,7 @@ public class BugTracker implements Serializable{
     }
 
     public void runTracker() {
+        log.info("Start tracker");
         User user = null;
         Boolean quit = false;
 
@@ -70,6 +77,7 @@ public class BugTracker implements Serializable{
 
                 }
             }
+            log.info("User '" + user.getLogin() + "' logged in the system");
 
             printHelp();
             while (user != null & !quit) {
@@ -123,13 +131,13 @@ public class BugTracker implements Serializable{
                         }
                         break;
                     case "sp":
-                        showAllProjects();
+                        showProjects();
                         break;
                     case "su":
-                        showAllUsers();
+                        showUsers();
                         break;
                     case "si":
-                        showAllIssues();
+                        showIssues();
                         break;
                         default:
                             console.printf("Unknown command. For list of commands type 'help'.\n");
@@ -170,6 +178,7 @@ public class BugTracker implements Serializable{
         String password = String.valueOf(System.console().readPassword("Password: "));
         user = userService.addUser(name,login,password);
         System.console().printf("Now you logged in by %s. Your id is %s\n",user.getLogin(),user.getID());
+        log.info("New user " + user.getID() + " with login '" + user.getLogin() + "' registered.");
         return user;
     }
 
@@ -204,6 +213,7 @@ public class BugTracker implements Serializable{
                 user = null;
             }
         }
+        log.info("User " + user.getID() + " with login '" + user.getLogin() + "' logged in.");
         return user;
     }
 
@@ -291,6 +301,13 @@ public class BugTracker implements Serializable{
                 endLoop = true;
             }
         }
+
+        System.console().printf("Show members for this project? (y|n)\n");
+        String show = System.console().readLine(">");
+        if (show.equals("y")) {
+            showUsers(project);
+        }
+
         endLoop = false;
         User user = null;
         while (!endLoop) {
@@ -444,7 +461,7 @@ public class BugTracker implements Serializable{
             switch (choice) {
                 case "project":
                     Project project = null;
-                    showAllProjects();
+                    showProjects();
                     boolean endProjectLoop = false;
                     while (!endProjectLoop) {
                         String projectId = System.console().readLine("Project id: ");
@@ -465,7 +482,7 @@ public class BugTracker implements Serializable{
                             endProjectLoop = true;
                         }
                     }
-                    showIssuesForProject(project);
+                    showIssues(project);
                     issueId = System.console().readLine("Issue id: ");
                     if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
                         issue = issueService.findIssueById(Integer.parseInt(issueId));
@@ -474,7 +491,7 @@ public class BugTracker implements Serializable{
                     }
                     break;
                 case "list":
-                    showAllIssues();
+                    showIssues();
                     issueId = System.console().readLine("Issue id: ");
                     if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
                         issue = issueService.findIssueById(Integer.parseInt(issueId));
@@ -569,7 +586,7 @@ public class BugTracker implements Serializable{
             switch (choice) {
                 case "project":
                     Project project = null;
-                    showAllProjects();
+                    showProjects();
                     boolean endProjectLoop = false;
                     while (!endProjectLoop) {
                         String projectId = System.console().readLine("Project id: ");
@@ -590,7 +607,7 @@ public class BugTracker implements Serializable{
                             endProjectLoop = true;
                         }
                     }
-                    showIssuesForProject(project);
+                    showIssues(project);
                     issueId = System.console().readLine("Issue id: ");
                     if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
                         issue = issueService.findIssueById(Integer.parseInt(issueId));
@@ -599,7 +616,7 @@ public class BugTracker implements Serializable{
                     }
                     break;
                 case "list":
-                    showAllIssues();
+                    showIssues();
                     issueId = System.console().readLine("Issue id: ");
                     if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
                         issue = issueService.findIssueById(Integer.parseInt(issueId));
@@ -698,7 +715,7 @@ public class BugTracker implements Serializable{
         return true;
     }
 
-    public void showAllProjects() {
+    public void showProjects() {
 
         System.console().printf("|%-5s |%-20s |%-40s |%-30s|\n","ID", "Name", "Description", "Owner name (login)");
         System.console().printf("--------------------------------------------------------------------------------------------------\n");
@@ -708,7 +725,7 @@ public class BugTracker implements Serializable{
         }
     }
 
-    public void showAllUsers() {
+    public void showUsers() {
         System.console().printf("|%-5s |%-30s |%-20s |\n","ID", "Name", "login");
         System.console().printf("--------------------------------------------------------------\n");
         for (User user : userService.getListOfUsers()) {
@@ -717,19 +734,28 @@ public class BugTracker implements Serializable{
         }
     }
 
-    public void showAllIssues() {
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
-        System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-13s |%-10s |\n","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
-        System.console().printf("-----------------------------------------------------------------------------------------------------------------------------------------\n");
-        for (Issue issue : issueService.getListOfIssues()) {
-            System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-13s |%-10s |\n",
-                    issue.getID(), "№" + issue.getProjectId() + " " + issue.getProject().getName(), issue.getOwner().getLogin(), issue.getTitle(), issue.getDescription(),
-                    issue.getAssigner().getLogin(),issue.getCreationTime().format(dateTimeFormatter),issue.getStatus());
-            System.console().printf("|------|---------------------|----------------|----------------|-----------------------------------------|----------------|--------------|-----------|\n");
+    public void showUsers(Project project) {
+        System.console().printf("|%-5s |%-30s |%-20s |\n","ID", "Name", "login");
+        System.console().printf("--------------------------------------------------------------\n");
+        for (User user : project.getMembers()) {
+            System.console().printf("|%-5d |%-30s |%-20s |\n",user.getID(), user.getName(),user.getLogin());
+            System.console().printf("|------|-------------------------------|---------------------|\n");
         }
     }
 
-    public void showIssuesForProject(Project project) {
+    public void showIssues() {
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
+        System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-13s |%-11s |\n","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
+        System.console().printf("-------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+        for (Issue issue : issueService.getListOfIssues()) {
+            System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-13s|%-11s |\n",
+                    issue.getID(), " " + issue.getProjectId() + " - " + issue.getProject().getName(), issue.getOwner().getLogin(), issue.getTitle(), issue.getDescription(),
+                    issue.getAssigner().getLogin(),issue.getCreationTime().format(dateTimeFormatter),issue.getStatus());
+            System.console().printf("|------|---------------------|----------------|----------------|-----------------------------------------|----------------|--------------|------------|\n");
+        }
+    }
+
+    public void showIssues(Project project) {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
         System.console().printf("|%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-12s|%-10s |\n","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
         System.console().printf("------------------------------------------------------------------------------------------------------------------------------------------------------\n");

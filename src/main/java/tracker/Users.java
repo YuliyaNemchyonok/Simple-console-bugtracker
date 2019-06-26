@@ -4,7 +4,7 @@ import java.io.*;
 import java.util.ArrayList;
 import org.apache.commons.csv.*;
 
-public class Users implements UserService, Serializable {
+public class Users implements UserService {
     private ArrayList<User> users;
     private int count;
 

@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class Issues implements IssueService, Serializable {
+public class Issues implements IssueService {
     private ArrayList<Issue> issues;
     private int count;
 

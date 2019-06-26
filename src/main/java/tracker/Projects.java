@@ -5,7 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-public class Projects implements ProjectService, Serializable {
+public class Projects implements ProjectService {
     private ArrayList<Project> projects;
     private int count;
 

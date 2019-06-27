@@ -16,6 +16,10 @@ public interface IssueService {
 
     List<Issue> getIssuesForProject(Project project);
 
+    List<Issue> getOwnedIssuesForUser(User user);
+
+    List<Issue> getAssignedIssuesForUser(User user);
+
     void clearIssueList();
 
     int countIssues();

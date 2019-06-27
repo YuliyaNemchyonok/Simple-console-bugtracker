@@ -72,6 +72,28 @@ public class Issues implements IssueService {
     }
 
     @Override
+    public List<Issue> getAssignedIssuesForUser(User user) {
+        List<Issue> userIssues = new ArrayList<>();
+        for (Issue issue : issues) {
+            if (issue.getAssigner()==user) {
+                userIssues.add(issue);
+            }
+        }
+        return userIssues;
+    }
+
+    @Override
+    public List<Issue> getOwnedIssuesForUser(User user) {
+        List<Issue> userIssues = new ArrayList<>();
+        for (Issue issue : issues) {
+            if (issue.getOwner()==user) {
+                userIssues.add(issue);
+            }
+        }
+        return userIssues;
+    }
+
+    @Override
     public void clearIssueList() {
         issues.clear();
     }

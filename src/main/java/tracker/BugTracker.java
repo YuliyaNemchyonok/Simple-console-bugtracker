@@ -9,7 +9,8 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 
 public class BugTracker{
@@ -78,7 +79,7 @@ public class BugTracker{
                 }
             }
             if (user != null) {
-                log.info("User '" + user.getLogin() + "' logged in the system");
+                log.info("User '" + user.getID() + " - " + user.getLogin() + "' logged in the system");
             }
 
             printHelp();
@@ -222,7 +223,7 @@ public class BugTracker{
     private void printHelp() {
         Console console = System.console();
         console.printf("List of commands for BugTracker:\n");
-        console.printf("%-5s %-5s %-20s %-20s\n", "", "q", "quit", "");
+        console.printf("%-5s %-5s %-20s %-20s\n", "", "q", "quit", "you can always leave any dialog with this command");
         console.printf("%-5s %-5s %-20s %-20s\n", "", "lo", "log out", "");
         console.printf("%-5s %-5s %-20s %-20s\n", "", "au", "add new user", "");
         console.printf("%-5s %-5s %-20s %-20s\n", "", "ap", "add new project", "");
@@ -252,6 +253,60 @@ public class BugTracker{
         return true;
     }
 
+    private User chooseUser()  {
+        User user = null;
+        boolean endLoop = false;
+        while (!endLoop) {
+            System.console().printf("Find user by id, name or login? (id|name|login)\n");
+            String choice = System.console().readLine("> ");
+            switch (choice) {
+                case "id":
+                    String id = System.console().readLine("id: ");
+                    if (id.matches("\\d+") && Integer.parseInt(id) <= userService.countUsers()) {
+                        user = userService.findUserById(Integer.parseInt(id));
+                        if (user != null) {
+                            return user;
+                        }
+                    } else {
+                        System.console().printf("Wrong id.\n");
+                    }
+                    break;
+                case "name":
+                    String name = System.console().readLine("Name: ");
+                    user = userService.findUserByName(name);
+                    if (user != null) {
+                        return user;
+                    } else {
+                        System.console().printf("Wrong name.\n");
+                    }
+                    break;
+                case "login":
+                    String login = System.console().readLine("Login: ");
+                    user = userService.findUserByLogin(login);
+                    if (user != null) {
+                        return user;
+                    }else {
+                        System.console().printf("Wrong login.\n");
+                    }
+                    break;
+                case "q":
+                    endLoop = true;
+                    break;
+                default:
+                    System.console().printf("Unknown operation. Try again.\n");
+                    break;
+            }
+            if (user == null) {
+                System.console().printf("User not found. Try again? (y|n)");
+                String again = System.console().readLine("> ");
+                endLoop = !again.equals("y");
+            } else {
+                endLoop = true;
+            }
+        }
+        return user;
+    }
+
     private boolean createProject(User user) {
         String name = System.console().readLine("Name: ");
         while (projectService.findProjectByName(name) != null) {
@@ -269,11 +324,16 @@ public class BugTracker{
         return true;
     }
 
-    private boolean addMembersToProject() {
+    private Project chooseProject() {
         Project project = null;
+
+        System.console().printf("Show list of all projects? (y|n)");
+        String show = System.console().readLine("> ");
+        if (show.equals("y")) showProjects();
+
         boolean endLoop = false;
         while (!endLoop) {
-            System.console().printf("Choose project. Find project by id or by name? (id|name) \n");
+            System.console().printf("Choose project by id or by name? (id|name) \n");
             String choice = System.console().readLine("> ");
             switch (choice) {
                 case "id":
@@ -296,12 +356,21 @@ public class BugTracker{
                     break;
             }
             if (project==null) {
-                System.console().printf("Project not found.\n");
-                return false;
+                System.console().printf("Project not found. Try again? (y|n)\n");
+                String again = System.console().readLine("> ");
+                endLoop = !again.equals("y");
             } else {
-                System.console().printf("Project %s \"%s\" chosen.\n", project.getID(), project.getName());
                 endLoop = true;
             }
+        }
+        return project;
+    }
+
+    private boolean addMembersToProject() {
+        Project project = chooseProject();
+        if (project==null) {
+            System.console().printf("You can add members only for existing project.\n");
+            return false;
         }
 
         System.console().printf("Show members for this project? (y|n)\n");
@@ -310,45 +379,9 @@ public class BugTracker{
             showUsers(project);
         }
 
-        endLoop = false;
-        User user = null;
+        boolean endLoop = false;
         while (!endLoop) {
-            user = null;
-            System.console().printf("Choose user to add. Find user by id, name or login? (id|name|login)\n");
-            String choice = System.console().readLine("> ");
-            switch (choice) {
-                case "id":
-                    String id = System.console().readLine("id: ");
-                    if (id.matches("\\d+") && Integer.parseInt(id) <= userService.countUsers()) {
-                        user = userService.findUserById(Integer.parseInt(id));
-                        if (user != null) {
-                            project.addMember(user);
-                        }
-                    } else {
-                        System.console().printf("Wrong id.\n");
-                    }
-                    break;
-                case "name":
-                    String name = System.console().readLine("Name: ");
-                    user = userService.findUserByName(name);
-                    if (user != null) {
-                        project.addMember(user);
-                    }
-                    break;
-                case "login":
-                    String login = System.console().readLine("Login: ");
-                    user = userService.findUserByLogin(login);
-                    if (user != null) {
-                        project.addMember(user);
-                    }
-                    break;
-                case "q":
-                    endLoop = true;
-                    break;
-                default:
-                    System.console().printf("Unknown operation. Try again.\n");
-                    break;
-            }
+            User user = chooseUser();
             if (user == null) {
                 System.console().printf("User not found. Try again? (y|n)");
                 String again = System.console().readLine("> ");
@@ -363,119 +396,50 @@ public class BugTracker{
     }
 
     private boolean createIssue(User user) {
-        Project project = null;
-        boolean endLoop = false;
-        while (!endLoop) {
-            System.console().printf("Choose project. Find project by id or by name? (id|name) \n");
-            String choice = System.console().readLine("> ");
-            switch (choice) {
-                case "id":
-                    String id = System.console().readLine("id: ");
-                    if (id.matches("\\d+") && Integer.parseInt(id)<=projectService.countProjects()) {
-                        project = projectService.findProjectById(Integer.parseInt(id));
-                    } else {
-                        System.console().printf("Wrong id.\n");
-                    }
-                    break;
-                case "name":
-                    String name = System.console().readLine("Name: ");
-                    project = projectService.findProjectByName(name);
-                    break;
-                case "q":
-                    endLoop = true;
-                    break;
-                default:
-                    System.console().printf("Unknown operation. Try again.\n");
-                    break;
-            }
-            if (project==null) {
-                System.console().printf("Project not found.\n");
-                return false;
-            } else {
-                System.console().printf("Project №%s '%s' chosen.\n", project.getID(), project.getName());
-                endLoop = true;
-            }
+        Project project = chooseProject();
+        if (project==null) {
+            System.console().printf("You can create new issue only for existing project.\n");
+            return false;
         }
         String title = System.console().readLine("Issue title: ");
+
         String description = System.console().readLine("Description: ");
-        endLoop = false;
+
+        System.console().printf("Choose assigner for the issue.\n");
         User assigner = null;
+        boolean endLoop = false;
         while (!endLoop) {
-            System.console().printf("Choose assigner for the issue. Find user by id, name or login? (id|name|login)\n");
-            String choice = System.console().readLine("> ");
-            switch (choice) {
-                case "id":
-                    String id = System.console().readLine("id: ");
-                    if (id.matches("\\d+") && Integer.parseInt(id) <= userService.countUsers()) {
-                        assigner = userService.findUserById(Integer.parseInt(id));
-                    } else {
-                        System.console().printf("Wrong id.\n");
-                    }
-                    break;
-                case "name":
-                    String name = System.console().readLine("Name: ");
-                    assigner = userService.findUserByName(name);
-                    break;
-                case "login":
-                    String login = System.console().readLine("Login: ");
-                    assigner = userService.findUserByLogin(login);
-                    break;
-                case "q":
-                    endLoop = true;
-                    break;
-                default:
-                    System.console().printf("Unknown operation. Try again.\n");
-                    break;
-            }
+            assigner = chooseUser();
             if (assigner == null) {
-                System.console().printf("User not found. Try again? (y|n)");
+                System.console().printf("You can't create issue without assigner. Try again? (y|n)");
                 String again = System.console().readLine("> ");
-                if (!again.equals("y")) {
-                    return false;
-                } else {
-                    endLoop = false;
-                }
+                endLoop = !again.equals("y");
             } else {
                 System.console().printf("Issue assigned to the '%s'.\n",assigner.getLogin());
                 endLoop = true;
             }
         }
+        if (assigner == null) {
+            return false;
+        }
         issueService.addIssue(title,project,user,assigner,description, LocalDateTime.now(),Status.TODO);
         return true;
     }
 
-    private boolean changeAssigner(User user) {
-        boolean endLoop = false;
+    private Issue chooseIssue() {
         Issue issue = null;
+        boolean endLoop = false;
         while(!endLoop) {
-            System.console().printf("Choose issue from project of from list of issues? (project|list)\n");
+            System.console().printf("Choose issue from list of issues, project or user? (issue|project|user)\n");
             String choice = System.console().readLine("> ");
             String issueId;
+
             switch (choice) {
-                case "project":
-                    Project project = null;
-                    showProjects();
-                    boolean endProjectLoop = false;
-                    while (!endProjectLoop) {
-                        String projectId = System.console().readLine("Project id: ");
-                        if (projectId.matches("\\d+") && Integer.parseInt(projectId) <= projectService.countProjects()) {
-                            project = projectService.findProjectById(Integer.parseInt(projectId));
-                        } else {
-                            System.console().printf("Wrong id.\n");
-                        }
-                        if (project == null) {
-                            System.console().printf("Project not found. Try again? (y|n)");
-                            String again = System.console().readLine("> ");
-                            if (!again.equals("y")) {
-                                break;
-                            } else {
-                                endProjectLoop = false;
-                            }
-                        } else {
-                            endProjectLoop = true;
-                        }
-                    }
-                    showIssues(project);
+                case "issue":
+                    System.console().printf("Show list of all issues? (y|n)\n");
+                    String show = System.console().readLine("> ");
+                    if (show.equals("y")) showIssues();
+
                     issueId = System.console().readLine("Issue id: ");
                     if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
                         issue = issueService.findIssueById(Integer.parseInt(issueId));
@@ -483,11 +447,54 @@ public class BugTracker{
                         System.console().printf("Wrong id.\n");
                     }
                     break;
-                case "list":
-                    showIssues();
+                case "project":
+                    Project project = chooseProject();
+                    if (project==null) {
+                        break;
+                    }
+
+                    System.console().printf("List of issues for project %s - '%s':\n",project.getID(),project.getName());
+                    showIssues(project);
+
                     issueId = System.console().readLine("Issue id: ");
                     if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
-                        issue = issueService.findIssueById(Integer.parseInt(issueId));
+                        int id = Integer.parseInt(issueId);
+                        for (Issue i : issueService.getIssuesForProject(project)) {
+                            if (i.getID() == id) {
+                                issue = i;
+                                break;
+                            }
+                        }
+                        System.console().printf("Project %s - '%s' has no such issue.\n", project.getID(),project.getName());
+                    } else {
+                        System.console().printf("Wrong id.\n");
+                    }
+                    break;
+                case "user":
+                    User user = chooseUser();
+                    if (user==null) {
+                        break;
+                    }
+
+                    System.console().printf("List of issues for user %s - '%s':\n",user.getID(),user.getName());
+                    showIssues(user);
+
+                    issueId = System.console().readLine("Issue id: ");
+                    if (issueId.matches("\\d+") && Integer.parseInt(issueId) <= issueService.countIssues()) {
+                        int id = Integer.parseInt(issueId);
+                        for (Issue i : issueService.getOwnedIssuesForUser(user)) {
+                            if (i.getID() == id) {
+                                issue = i;
+                                break;
+                            }
+                        }
+                        for (Issue i : issueService.getAssignedIssuesForUser(user)) {
+                            if (i.getID() == id) {
+                                issue = i;
+                                break;
+                            }
+                        }
+                        System.console().printf("User %s - '%s' has no such issue.\n",user.getID(),user.getLogin());
                     } else {
                         System.console().printf("Wrong id.\n");
                     }
@@ -502,16 +509,23 @@ public class BugTracker{
             if (issue == null) {
                 System.console().printf("Issue not found. Try again? (y|n)\n");
                 String again = System.console().readLine("> ");
-                if (!again.equals("y")) {
-                    return false;
-                } else {
-                    endLoop = false;
-                }
+                endLoop = !again.equals("y");
             } else {
                 endLoop = true;
             }
         }
+        return issue;
+    }
+
+    private boolean changeAssigner(User user) {
+        Issue issue = chooseIssue();
+
+        if (issue==null) {
+            return false;
+        }
+
         Project project = issue.getProject();
+
         boolean access = false;
         for (User u : project.getMembers()) {
             if (u == user) {
@@ -519,50 +533,25 @@ public class BugTracker{
             }
         }
         if (!access) {
-            System.console().printf("Sorry, only members of project '%s' can change assigners for its issues.\n", project.getName());
+            System.console().printf("Sorry, only members of project %s - '%s' can change assigners for its issues.\n", project.getID(), project.getName());
             return false;
         }
 
-        endLoop = false;
-        User assigner = null;
+        System.console().printf("Choose new assigner for issue %s - '%s' instead of '%s'\n",issue.getID(),issue.getTitle(),issue.getAssigner().getLogin());
+        User assigner;
+        boolean endLoop = false;
         while (!endLoop) {
-            assigner = null;
-            System.console().printf("Choose assigner for the issue. Find user by id, name or login? (id|name|login)\n");
-            String choice = System.console().readLine("> ");
-            switch (choice) {
-                case "id":
-                    String id = System.console().readLine("id: ");
-                    if (id.matches("\\d+") && Integer.parseInt(id) <= userService.countUsers()) {
-                        assigner = userService.findUserById(Integer.parseInt(id));
-                    } else {
-                        System.console().printf("Wrong id.\n");
-                    }
-                    break;
-                case "name":
-                    String name = System.console().readLine("Name: ");
-                    assigner = userService.findUserByName(name);
-                    break;
-                case "login":
-                    String login = System.console().readLine("Login: ");
-                    assigner = userService.findUserByLogin(login);
-                    break;
-                case "q":
-                    endLoop = true;
-                    break;
-                default:
-                    System.console().printf("Unknown operation. Try again.\n");
-                    break;
-            }
+            assigner = chooseUser();
             if (assigner == null) {
-                System.console().printf("User not found. Try again? (y|n)\n");
-                String again = System.console().readLine("> ");
-                endLoop = !again.equals("y");
+                System.console().printf("Leave '%s' assigner of issue %s - '%s'? (y|n)\n",issue.getAssigner().getLogin(),issue.getID(),issue.getTitle());
+                String leave = System.console().readLine("> ");
+                endLoop = leave.equals("y");
             } else {
-                System.console().printf("Issue '%s' of project '%s' assigned to the '%s' by '%s'.\n",issue.getTitle(),project.getName(),assigner.getLogin(),user.getLogin());
-                return true;
+                System.console().printf("Issue %s - '%s' of project '%s' assigned to the '%s' by '%s'.\n",issue.getID(), issue.getTitle(),project.getName(),assigner.getLogin(),user.getLogin());
+                endLoop = true;
             }
         }
-        return false;
+        return true;
     }
 
     private boolean changeStatusOfIssue(User user) {
@@ -754,6 +743,25 @@ public class BugTracker{
                     issue.getAssigner().getLogin(),issue.getCreationTime().format(dateTimeFormatter),issue.getStatus());
             System.console().printf("|------|---------------------|----------------|----------------|-----------------------------------------|----------------|--------------|-----------|\n");
         }
+    }
+
+    private void showIssues(User user) {
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yy HH:mm");
+        System.console().printf("|%-9s |%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-12s|%-10s |\n","User role","ID","Project","Owner","Title","Description","Assigner","Creation time","Status");
+        System.console().printf("-----------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+        for (Issue issue : issueService.getOwnedIssuesForUser(user)) {
+            System.console().printf("|%-9s |%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-12s|%-10s |\n",
+                    "Owner", issue.getID(), " " + issue.getProjectId() + " " + issue.getProject().getName(), issue.getOwner().getLogin(), issue.getTitle(),
+                    issue.getDescription(),                    issue.getAssigner().getLogin(),issue.getCreationTime().format(dateTimeFormatter),issue.getStatus());
+            System.console().printf("|----------|------|---------------------|----------------|----------------|-----------------------------------------|----------------|--------------|-----------|\n");
+        }
+        for (Issue issue : issueService.getAssignedIssuesForUser(user)) {
+            System.console().printf("|%-9s |%-5s |%-20s |%-15s |%-15s |%-40s |%-15s |%-12s|%-10s |\n",
+                    "Assigner", issue.getID(), " " + issue.getProjectId() + " " + issue.getProject().getName(), issue.getOwner().getLogin(), issue.getTitle(),
+                    issue.getDescription(),                    issue.getAssigner().getLogin(),issue.getCreationTime().format(dateTimeFormatter),issue.getStatus());
+            System.console().printf("|----------|------|---------------------|----------------|----------------|-----------------------------------------|----------------|--------------|-----------|\n");
+        }
+
     }
 
     private void close(ArrayList<User> users, ArrayList<Project> projects, ArrayList<Issue> issues, String fileForUsers, String fileForProjects, String fileForIssues, String fileForProjectUserRelation) {

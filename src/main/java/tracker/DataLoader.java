@@ -10,22 +10,22 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class DataLoader {
+class DataLoader {
     private static final Logger log = LogManager.getLogger(DataLoader.class.getName());
-    ArrayList<ProjectRow> projectRows = new ArrayList<>();
-    ArrayList<ProjectUserRelationRow> projectUserRelationRows = new ArrayList<>();
 
     ArrayList<User> users = new ArrayList<>();
     ArrayList<Project> projects = new ArrayList<>();
     ArrayList<Issue> issues = new ArrayList<>();
 
-    HashMap<Integer,User> userHashMap = new HashMap<>();
-    HashMap<Integer,Project> projectHashMap =  new HashMap<>();
+    private HashMap<Integer,User> userHashMap = new HashMap<>();
+    private HashMap<Integer,Project> projectHashMap =  new HashMap<>();
 
     DataLoader(String fileForUsers, String fileForProjects, String fileForIssues, String fileForProjectUserRelation) {
+        log.info("Start reading data from files '" + fileForUsers + "', '" + fileForProjects + "', '" + fileForIssues + "', '" + fileForProjectUserRelation + "'");
         log.debug("Start constructor");
         try {
             Reader in = new FileReader(fileForUsers);
+            log.debug("Start reading file '" + fileForUsers + "'");
             Iterable<CSVRecord> userRecords = CSVFormat.DEFAULT.withHeader("id","name","login","password").parse(in);
             userRecords.iterator().next();
             for (CSVRecord record : userRecords) {
@@ -34,9 +34,22 @@ public class DataLoader {
                 String login = record.get("login");
                 String password = record.get("password");
                 users.add(new User(id, name, login, password));
+                log.debug("Add User with id '" + id + "', name '" + name + "', login '" + login + "', password");
             }
+            log.debug("Reading file '" + fileForUsers + "' completed");
+        } catch (FileNotFoundException fnfe) {
+            log.error("File '" + fileForUsers + "'not found");
+            fnfe.printStackTrace();
+        } catch (IOException ioe) {
+            log.error("IOExeption with file '" + fileForUsers + "'");
+            ioe.printStackTrace();
+        }
 
-            in = new FileReader(fileForProjects);
+        ArrayList<ProjectRow> projectRows = new ArrayList<>();
+        log.debug("Create ArrayList<ProjectRow> projectRows");
+        try {
+            Reader in = new FileReader(fileForProjects);
+            log.debug("Start reading file '" + fileForProjects + "'");
             Iterable<CSVRecord> projectRecords = CSVFormat.DEFAULT.withHeader("id","name","description","ownerId").parse(in);
             projectRecords.iterator().next();
             for (CSVRecord record : projectRecords) {
@@ -45,26 +58,43 @@ public class DataLoader {
                 String description = record.get("description");
                 int ownerId = Integer.parseInt(record.get("ownerId"));
                 projectRows.add(new ProjectRow(ID, name, description, ownerId));
+                log.debug("Add ProjectRow with id '" + ID + "', name '" + name + "', description '" + description + "', ownerId '" + ownerId + "'");
             }
+            log.debug("Reading file '" + fileForProjects + "' completed");
+        } catch (FileNotFoundException fnfe) {
+            log.error("File '" + fileForProjects + "'not found");
+            fnfe.printStackTrace();
+        } catch (IOException ioe) {
+            log.error("IOExeption with file '" + fileForProjects + "'");
+            ioe.printStackTrace();
+        }
 
-            in = new FileReader(fileForProjectUserRelation);
+        try {
+            Reader in = new FileReader(fileForProjectUserRelation);
+            log.debug("Start reading file '" + fileForProjectUserRelation + "'");
             Iterable<CSVRecord> projectUserRelationRecords = CSVFormat.DEFAULT.withHeader("userId","projectId").parse(in);
             projectUserRelationRecords.iterator().next();
-            PrintWriter pw = new PrintWriter("RecordsForRelations.log", "UTF-8");
+            ArrayList<ProjectUserRelationRow> projectUserRelationRows = new ArrayList<>();
+            log.debug("Create ArrayList<ProjectUserRelationRow> projectUserRelationRows");
             for (CSVRecord record : projectUserRelationRecords) {
-                pw.println("String: userId '" + record.get("userId") + "', projectId '" + record.get("projectId") + "'");
                 int userId = Integer.parseInt(record.get("userId"));
                 int projectId = Integer.parseInt(record.get("projectId"));
-                pw.println("Int: userId '" + userId + "', projectId '" + projectId + "'");
-                ProjectUserRelationRow purr = new ProjectUserRelationRow(userId,projectId);
-                projectUserRelationRows.add(purr);
-                pw.println("Purr: userId '" + purr.userId + "', projectId '" + purr.projectId + "'");
-                pw.println("Purr getter: userId '" + purr.getUserId() + "', projectId '" + purr.getProjectId() + "'");
+                projectUserRelationRows.add(new ProjectUserRelationRow(userId,projectId));
+                log.debug("Add ProjectUserRelationRow with userId '" + userId + "', projectId '" + projectId + "'");
             }
-            pw.close();
+            log.debug("Reading file '" + fileForProjectUserRelation + "' completed");
             addMembersToProjects(users, projectRows, projectUserRelationRows);
+        } catch (FileNotFoundException fnfe) {
+            log.error("File '" + fileForProjectUserRelation + "'not found");
+            fnfe.printStackTrace();
+        } catch (IOException ioe) {
+            log.error("IOExeption with file '" + fileForProjectUserRelation + "'");
+            ioe.printStackTrace();
+        }
 
-            in = new FileReader(fileForIssues);
+        try {
+            Reader in = new FileReader(fileForIssues);
+            log.debug("Start reading file '" + fileForIssues + "'");
             Iterable<CSVRecord> issueRecords = CSVFormat.DEFAULT.withHeader("id","title","projectId","ownerId","assignerId","description","creationTime","status").parse(in);
             issueRecords.iterator().next();
             for (CSVRecord record : issueRecords) {
@@ -77,63 +107,52 @@ public class DataLoader {
                 LocalDateTime creationTime = LocalDateTime.parse(record.get("creationTime"));
                 Status status = Status.valueOf(record.get("status"));
                 issues.add(new Issue(ID,title, projectHashMap.get(projectId),userHashMap.get(ownerId),userHashMap.get(assignerId),description,creationTime,status));
+                log.debug("Add Issue with id '" + ID + "', title '" + title + "', projectId '" + projectId + "', ownerId '" + ownerId + "', assignerId '" + assignerId + "', status '" + status.toString() + "'");
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+            log.debug("Reading file '" + fileForIssues + "' completed");
+        } catch (FileNotFoundException fnfe) {
+            log.error("File '" + fileForIssues + "'not found");
+            fnfe.printStackTrace();
+        } catch (IOException ioe) {
+            log.error("IOExeption with file '" + fileForIssues + "'");
+            ioe.printStackTrace();
         }
-
-
+        log.info("Data from files read");
     }
 
-    void addMembersToProjects(ArrayList<User> users, ArrayList<ProjectRow> projectRows, ArrayList<ProjectUserRelationRow> projectUserRelationRows) {
-        try {
-            PrintWriter printWriter = new PrintWriter("Errors.log","UTF-8");
-            int count = 0;
-            printWriter.println(count + ": users '" + users.size() + "', projectRows '" + projectRows.size() + "', projectUserRelationRows '" + projectUserRelationRows.size() + "'");
-            printWriter.println(projectUserRelationRows);
-
+    private void addMembersToProjects(ArrayList<User> users, ArrayList<ProjectRow> projectRows, ArrayList<ProjectUserRelationRow> projectUserRelationRows) {
+        log.debug("Method addMembersToProjects invoked");
         for (User user : users) {
             userHashMap.put(user.getID(), user);
-            printWriter.println(count + ": add user to userHM: '" + user.getID() + "'");
-            count++;
+            log.debug("Put to userHashMap user with id '" + user.getID() + "'");
         }
         for (ProjectRow projectRow : projectRows) {
             Project project = new Project(projectRow.getID(),projectRow.getName(), projectRow.getDescription(), userHashMap.get(projectRow.getOwnerId()), new ArrayList<>());
             projectHashMap.put(projectRow.getID(), project);
+            log.debug("Put to projectHashMap project with id '" + project.getID() + "'");
             projects.add(project);
-            printWriter.println(count + ": add project to projectHM and projects: '" + project.getID() + "'");
-            count++;
+            log.debug("Add Project with id '" + project.getID() + "', name" + project.getName() + "', description '" + project.getDescription() + "', owner login '" + project.getOwnerLogin() + "'");
         }
         for (ProjectUserRelationRow projectUserRelationRow : projectUserRelationRows) {
             User user = userHashMap.get(projectUserRelationRow.getUserId());
-            if (user!= null) {
-                printWriter.println(count + ": find user in userHM. userId from rows: '" + projectUserRelationRow.getUserId() + "' userId from found user: '" + user.getID() + "'");
-                count++;
-            } else {
-                printWriter.println(count + ": user not found in userHM. UserId from rows: " + projectUserRelationRow.userId);
-                count++;
+            if (user==null) {
+                log.warn("In projectUserRelation file invalid userId. There is no user with id '" + projectUserRelationRow.getUserId() + "'");
+                continue;
             }
+            log.debug("Get from userHashMap user with id '" + user.getID() + "'");
+
             Project project = projectHashMap.get(projectUserRelationRow.getProjectId());
-            if (project!= null) {
-                printWriter.println(count + ": find project in projectHM. projectId from rows: '" + projectUserRelationRow.projectId + "' projectId for found project: '" + project.getID() + "'");
-                count++;
-            } else {
-                printWriter.println(count + ": project not found in projectHM. projectId from rows: '" + projectUserRelationRow.projectId + "'");
+            if (project==null) {
+                log.warn("In projectUserRelation file invalid projectId. There is no project with id '" + projectUserRelationRow.getProjectId() + "'");
+                continue;
             }
-            if (user!=null) {
-                project.addMember(user);
-            }
+            log.debug("Get from projectHashMap project with id '" + project.getID() + "'");
 
-            printWriter.close();
+            project.addMember(user);
+            log.debug("Add to the project " + project.getID() + " - '" + project.getName() + "' member " + user.getID() + " - '" + user.getLogin() + "'");
+
         }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        log.debug("Method addMembersToProjects completed");
     }
-
 
 }

@@ -37,15 +37,15 @@ public class BugTracker{
         String fileForProjectUserRelation = "ProjectUserRelation.csv";
 
         DataLoader dataLoader = new DataLoader(fileForUsers, fileForProjects, fileForIssues, fileForProjectUserRelation);
-
         Users users = new Users(dataLoader.users);
         Projects projects = new Projects(dataLoader.projects);
         Issues issues = new Issues(dataLoader.issues);
 
         BugTracker bugTracker = new BugTracker(users, projects, issues);
         bugTracker.runTracker();
-        bugTracker.close(users.getListOfUsers(),projects.getListOfProjects(),issues.getListOfIssues(), fileForUsers, fileForProjects, fileForIssues, fileForProjectUserRelation);
 
+        DataWriter dataWriter = new DataWriter(users.getListOfUsers(),projects.getListOfProjects(),issues.getListOfIssues(), fileForUsers, fileForProjects, fileForIssues, fileForProjectUserRelation);
+        dataWriter.writeDataToFiles();
     }
 
     private void runTracker() {
@@ -764,68 +764,5 @@ public class BugTracker{
             System.console().printf("|----------|------|---------------------|----------------|----------------|-----------------------------------------|----------------|--------------|-----------|\n");
         }
 
-    }
-
-    private void close(ArrayList<User> users, ArrayList<Project> projects, ArrayList<Issue> issues, String fileForUsers, String fileForProjects, String fileForIssues, String fileForProjectUserRelation) {
-        log.info("Start saving data from app to the files '" + fileForUsers + "', '" + fileForProjects + "', '" + fileForProjectUserRelation + "', '" + fileForIssues + "'");
-        try (CSVPrinter printer = new CSVPrinter(new FileWriter(fileForUsers), CSVFormat.DEFAULT.withHeader("id","name","login","password"))) {
-            log.debug("Start writing in file '" + fileForUsers + "'");
-            for (User user : users) {
-                printer.printRecord(user.getID(),user.getName(),user.getLogin(),user.getPassword());
-                log.debug("Print User with id '" + user.getID() + "', name '" + user.getName() + "', login '" + user.getLogin() + "', password");
-            }
-            log.debug("Writing in file '" + fileForUsers + "' complete");
-        } catch (IOException ex) {
-            log.error("Exception with writing list of Users into file '" + fileForUsers + "'");
-            ex.printStackTrace();
-        }
-
-        try (CSVPrinter printer = new CSVPrinter(new FileWriter(fileForProjects), CSVFormat.DEFAULT.withHeader("id","name","description","ownerId"))) {
-            log.debug("Start writing in file '" + fileForProjects + "'");
-            for (Project project : projects) {
-                printer.printRecord(project.getID(),project.getName(),project.getDescription(),project.getOwnerId());
-                log.debug("Print Project with id '" + project.getID() + "', name '" + project.getName() + "', description, ownerId '" + project.getOwnerId() + "'");
-            }
-            log.debug("Writing in file '" + fileForProjects + "' complete");
-        } catch (IOException ex) {
-            log.error("Exception with writing list of Projects into file '" + fileForProjects + "'");
-            ex.printStackTrace();
-        }
-
-        try (CSVPrinter printer = new CSVPrinter(new FileWriter(fileForIssues), CSVFormat.DEFAULT.withHeader("id","title","projectId","ownerId","assignerId","description","creationTime","status"))) {
-            log.debug("Start writing in file '" + fileForIssues + "'");
-            for (Issue issue : issues) {
-                printer.print(String.valueOf(issue.getID()));
-                printer.print(issue.getTitle());
-                printer.print(String.valueOf(issue.getProjectId()));
-                printer.print(String.valueOf(issue.getOwnerId()));
-                printer.print(String.valueOf(issue.getAssignerId()));
-                printer.print(issue.getDescription());
-                printer.print(issue.getCreationTime());
-                printer.print(issue.getStatus());
-                printer.println();
-                log.debug("Print Issue with id '" + issue.getID() + "', title '" + issue.getTitle() + "', projectId '" + issue.getProjectId() + "', ownerId '" + issue.getOwnerId() + "', " +
-                        "assignerId '" + issue.getAssignerId() + "', description, creation time " + issue.getCreationTime() + ", status " + issue.getStatus().toString());
-            }
-            log.debug("Writing in file '" + fileForIssues + "' complete");
-        } catch (IOException ex) {
-            log.error("Exception with writing list of Issue into file '" + fileForIssues + "'");
-            ex.printStackTrace();
-        }
-
-        try (CSVPrinter printer = new CSVPrinter(new FileWriter(fileForProjectUserRelation), CSVFormat.DEFAULT.withHeader("userId","projectId"))) {
-            log.debug("Start writing in file '" + fileForProjectUserRelation + "'");
-            for (Project project : projects) {
-                for (User user : project.getMembers()) {
-                    printer.printRecord(user.getID(),project.getID());
-                    log.debug("Print ProjectUserRelationRow with userId " + user.getID() + ", projectId " + project.getID());
-                }
-            }
-            log.debug("Writing in file '" + fileForProjectUserRelation + "' complete");
-        } catch (IOException ex) {
-            log.error("Exception with writing list of ProjectUserRelations into file '" + fileForProjectUserRelation + "'");
-            ex.printStackTrace();
-        }
-        log.info("Data saved into the files.");
     }
 }

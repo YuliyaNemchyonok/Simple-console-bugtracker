@@ -54,25 +54,29 @@ public class BugTracker{
         boolean quit = false;
 
         Console console = System.console();
+        console.printf("Hello, my dear friend and welcome to the BugTracking system!\n");
         while (!quit) {
-            console.printf("Hello, my dear friend and welcome to the BugTracking system!\nChoose option:\n");
-            console.printf("%-5s %-5s %-12s\n", "", "r", "registration");
-            console.printf("%-5s %-5s %-12s\n", "", "li", "log in");
-            console.printf("%-5s %-5s %-12s\n", "", "q", "quit");
-
-            String command;
             while (user == null & !quit) {
-                command = console.readLine("> ");
+                console.printf("Choose option:\n");
+                console.printf("%-5s %-5s %-12s\n", "", "r", "registration");
+                console.printf("%-5s %-5s %-12s\n", "", "li", "log in");
+                console.printf("%-5s %-5s %-12s\n", "", "q", "quit");
+                String command = console.readLine("> ");
                 switch (command) {
                     case "q":
                         console.printf("Goodbye!\n");
                         quit = true;
                         break;
                     case "r":
-                        user = registration(user);
+                        user = registration();
+                        if (user==null) {
+                            System.console().printf("Registration failed.\n");
+                        } else {
+                            System.console().printf("Now you logged in by %s. Your id is %s\n",user.getLogin(),user.getID());
+                        }
                         break;
                     case "li":
-                        user = logIn(user);
+                        user = logIn();
                         break;
                     default:
                         console.printf("Unknown command. Try again.\n");
@@ -85,14 +89,15 @@ public class BugTracker{
             }
 
             printHelp();
+
             while (user != null & !quit) {
-                command = console.readLine("> ");
+                String command = console.readLine("> ");
                 switch (command) {
                     case "help":
                         printHelp();
                         break;
                     case "q":
-                        console.printf("Goodbye!\n");
+                        console.printf("Goodbye, %s!\n",user.getName());
                         quit = true;
                         break;
                     case "lo":
@@ -100,11 +105,20 @@ public class BugTracker{
                         user = null;
                         break;
                     case "au":
-                        if (createUser()) {
-                            console.printf("User added to the system successfully. To add user to the project type 'aup'.\n");
-                        } else {
-                            console.printf("Attempt to create user failed.\n");
+                        boolean endLoop = false;
+                        while (!endLoop) {
+                            User userToAdd = registration();
+                            if (userToAdd!=null) {
+                                console.printf("User added successfully.\nAdd another one? (y|n)\n");
+                            } else {
+                                console.printf("Attempt to create user failed.\nTry again? (y|n)\n");
+                            }
+                            String again = console.readLine("> ");
+                            if (!again.equals("y")) {
+                                endLoop = true;
+                            }
                         }
+                        console.printf("To add users to the project type 'aup'\n");
                         break;
                     case "ap":
                         if (createProject(user)) {
@@ -155,40 +169,33 @@ public class BugTracker{
     }
 
 
-    private User registration(User user) {
-        if (user!=null) {
-            String lo = System.console().readLine("Logged in by \"%s\". Do you want to log out? (y|n)\n", user.getLogin());
-            if (lo.equals("y")) {
-                System.console().printf("Now you logged out.\n");
-                user =null;
-            } else {
-                return user;
-            }
-        }
+    private User registration() {
+        log.info("Registration of new user begin");
+
         String name = System.console().readLine("Name: ");
         String login = System.console().readLine("Login: ");
         while (userService.findUserByLogin(login)!=null) {
-            System.console().printf("Sorry, login \"%s\" occupied. Try again? (y|n)\n",login);
+            log.debug("Login '" + login + "' already occupied.");
+            System.console().printf("Sorry, login '%s' occupied. Try again? (y|n)\n",login);
             String tryAgain = System.console().readLine("> ");
             if (tryAgain.equals("y")) {
                 login = System.console().readLine("Login: ");
             } else {
-                System.console().printf("Registration failed. Choose option:\n");
-                System.console().printf("%-5s %-5s %-12s\n", "", "r", "registration");
-                System.console().printf("%-5s %-5s %-12s\n", "", "li", "log in");
-                System.console().printf("%-5s %-5s %-12s\n", "", "q", "quit");
+                log.info("Registration failed. Login chosen by new user already occupied, user prefer to terminate registration.");
                 return null;
             }
         }
         String password = String.valueOf(System.console().readPassword("Password: "));
-        user = userService.addUser(name,login,password);
-        System.console().printf("Now you logged in by %s. Your id is %s\n",user.getLogin(),user.getID());
-        log.info("New user " + user.getID() + " with login '" + user.getLogin() + "' registered.");
+        User user = userService.addUser(name,login,password);
+
+        log.info("Registration completed successfully. New user number " + user.getID() + " with login '" + user.getLogin() + "' registered.");
+
         return user;
     }
 
-    private User logIn(User user) {
-        if (user != null) {
+    private User logIn() {
+        log.info("Authorization begin");
+        /*if (user != null) {
             String lo = System.console().readLine("Logged in by \"%s\". Do you want to log out? (y|n)\n", user.getLogin());
             if (lo.equals("y")) {
                 System.console().printf("Now you logged out.\n");
@@ -196,29 +203,32 @@ public class BugTracker{
             } else {
                 return user;
             }
-        }
+        }*/
+
+        User user = null;
 
         while (user == null) {
             String userLogin = System.console().readLine("Login: ");
             String userPassword = String.valueOf(System.console().readPassword("Password: "));
             user = userService.findUserByLogin(userLogin);
-            if (user != null && user.checkPassword(userPassword)) {
-                System.console().printf("Hello, %s! Your id is %s.\n", user.getName(), user.getID());
-                return user;
-            } else {
+            if (user == null || !user.checkPassword(userPassword)) {
+                if (user==null) {
+                    log.debug("User with login '" + userLogin + "' not found in the system");
+                } else {
+                    log.debug("Entered wrong password for user '" + userLogin + "'");
+                    user = null;
+                }
                 System.console().printf("Sorry, there is no user with this login and password. Try again?(y|n)\n");
                 String tryAgain = System.console().readLine("> ");
                 if (!tryAgain.equals("y")) {
-                    System.console().printf("Attempt to log in failed. Choose option:\n");
-                    System.console().printf("%-5s %-5s %-12s\n", "", "r", "registration");
-                    System.console().printf("%-5s %-5s %-12s\n", "", "li", "log in");
-                    System.console().printf("%-5s %-5s %-12s\n", "", "q", "quit");
+                    System.console().printf("Authorization failed.\n");
+                    log.info("Authorization failed. No match for login-password in the system, user prefer to terminate authorization.");
                     return null;
                 }
-                user = null;
             }
         }
-        log.info("User " + user.getID() + " with login '" + user.getLogin() + "' logged in.");
+        System.console().printf("Hello, %s! Your id is %s.\n", user.getName(), user.getID());
+        log.info("Successful authorization. User number " + user.getID() + " with login '" + user.getLogin() + "' logged in.");
         return user;
     }
 
@@ -237,22 +247,7 @@ public class BugTracker{
         console.printf("%-5s %-5s %-20s %-20s\n", "", "su", "show list of all users", "");
         console.printf("%-5s %-5s %-20s %-20s\n", "", "si", "show list of all issues", "");
         console.printf("%-5s %-5s %-20s %-20s\n", "", "help", "show list commands", "");
-
-    }
-
-    private boolean createUser() {
-        String name = System.console().readLine("Name: ");
-        String login = System.console().readLine("Login: ");
-        while (userService.findUserByLogin(login)!=null) {
-            String tryAgain = System.console().readLine("Sorry, this login \"%s\" occupied. Try again? (y|n) \n", login);
-            if (!tryAgain.equals("y")) {
-                return false;
-            }
-            login = System.console().readLine("Login: ");
-        }
-        String password = String.valueOf(System.console().readPassword("Password: "));
-        userService.addUser(name,login,password);
-        return true;
+        log.info("Print help");
     }
 
     private User chooseUser()  {

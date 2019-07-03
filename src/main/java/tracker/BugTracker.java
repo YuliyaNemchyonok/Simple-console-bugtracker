@@ -195,15 +195,6 @@ public class BugTracker{
 
     private User logIn() {
         log.info("Authorization begin");
-        /*if (user != null) {
-            String lo = System.console().readLine("Logged in by \"%s\". Do you want to log out? (y|n)\n", user.getLogin());
-            if (lo.equals("y")) {
-                System.console().printf("Now you logged out.\n");
-                user = null;
-            } else {
-                return user;
-            }
-        }*/
 
         User user = null;
 
@@ -251,6 +242,7 @@ public class BugTracker{
     }
 
     private User chooseUser()  {
+        log.debug("Method chooseUser invoked");
         User user = null;
         boolean endLoop = false;
         while (!endLoop) {
@@ -258,49 +250,62 @@ public class BugTracker{
             String choice = System.console().readLine("> ");
             switch (choice) {
                 case "id":
+                    log.debug("Find user by id");
                     String id = System.console().readLine("id: ");
                     if (id.matches("\\d+") && Integer.parseInt(id) <= userService.countUsers()) {
                         user = userService.findUserById(Integer.parseInt(id));
                         if (user != null) {
+                            log.debug("Method chooseUser completed. User with id "+ id + "found.");
                             return user;
                         }
                     } else {
+                        log.debug("User with id " + id + " not found");
                         System.console().printf("Wrong id.\n");
                     }
                     break;
                 case "name":
+                    log.debug("Find by name");
                     String name = System.console().readLine("Name: ");
                     user = userService.findUserByName(name);
                     if (user != null) {
+                        log.debug("Method chooseUser completed. User with name '"+ name + "' found.");
                         return user;
                     } else {
+                        log.debug("User with name '" + name + "' not found");
                         System.console().printf("Wrong name.\n");
                     }
                     break;
                 case "login":
+                    log.debug("Find by login");
                     String login = System.console().readLine("Login: ");
                     user = userService.findUserByLogin(login);
                     if (user != null) {
+                        log.debug("User with login '" + login + "' found");
                         return user;
                     }else {
+                        log.debug("User with login '" + login + "' not found");
                         System.console().printf("Wrong login.\n");
                     }
                     break;
                 case "q":
+                    log.debug("Quit loop for find user by type 'q'");
                     endLoop = true;
                     break;
                 default:
+                    log.debug("Unknown operation for find user '" + choice + "'");
                     System.console().printf("Unknown operation. Try again.\n");
                     break;
             }
             if (user == null) {
                 System.console().printf("User not found. Try again? (y|n)");
                 String again = System.console().readLine("> ");
+                log.debug("Try again answer '" + again +"'");
                 endLoop = !again.equals("y");
             } else {
                 endLoop = true;
             }
         }
+        log.debug("Method chooseUser completed.");
         return user;
     }
 

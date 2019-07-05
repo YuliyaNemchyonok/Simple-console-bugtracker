@@ -10,8 +10,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
-
-
 public class BugTracker{
     private static final Logger log = LogManager.getLogger(BugTracker.class.getName());
     private UserService userService;
@@ -171,7 +169,6 @@ public class BugTracker{
 
     private User registration() {
         log.info("Registration of new user begin");
-
         String name = System.console().readLine("Name: ");
         String login = System.console().readLine("Login: ");
         while (userService.findUserByLogin(login)!=null) {
@@ -181,7 +178,7 @@ public class BugTracker{
             if (tryAgain.equals("y")) {
                 login = System.console().readLine("Login: ");
             } else {
-                log.info("Registration failed. Login chosen by new user already occupied, user prefer to terminate registration.");
+                log.info("Registration failed. Login chosen for new user already occupied, user prefer to terminate registration.");
                 return null;
             }
         }
@@ -189,7 +186,6 @@ public class BugTracker{
         User user = userService.addUser(name,login,password);
 
         log.info("Registration completed successfully. New user number " + user.getID() + " with login '" + user.getLogin() + "' registered.");
-
         return user;
     }
 
@@ -288,7 +284,7 @@ public class BugTracker{
                     }
                     break;
                 case "q":
-                    log.debug("Quit loop for find user by type 'q'");
+                    log.debug("Quit find user loop by type 'q'");
                     endLoop = true;
                     break;
                 default:
@@ -296,37 +292,42 @@ public class BugTracker{
                     System.console().printf("Unknown operation. Try again.\n");
                     break;
             }
-            if (user == null) {
-                System.console().printf("User not found. Try again? (y|n)");
-                String again = System.console().readLine("> ");
-                log.debug("Try again answer '" + again +"'");
-                endLoop = !again.equals("y");
-            } else {
-                endLoop = true;
-            }
+
+            log.debug("User = null");
+            System.console().printf("User not found. Try again? (y|n)");
+            String again = System.console().readLine("> ");
+            log.debug("Try again answer '" + again +"'");
+            endLoop = !again.equals("y");
         }
-        log.debug("Method chooseUser completed.");
-        return user;
+
+        log.debug("Method chooseUser completed without finding user and return null.");
+        return null;
     }
 
     private boolean createProject(User user) {
+        log.info("Creating project begin");
         String name = System.console().readLine("Name: ");
         while (projectService.findProjectByName(name) != null) {
-            System.console().printf("Sorry, name \"%s\" occupied. Try again? (y|n)\n",name);
+            log.debug("Project with name '" + name + "' already existed");
+            System.console().printf("Sorry, name '%s' occupied. Try again? (y|n)\n",name);
             String tryAgain = System.console().readLine("> ");
             if (tryAgain.equals("y")) {
                 name = System.console().readLine("Name: ");
             } else {
+                log.info("Creating project failed. Name chosen for new project already occupied, user prefer to terminate registration.");
                 return false;
             }
         }
         String description = System.console().readLine("Description: ");
         Project project = projectService.addProject(name,description,user,new ArrayList<>());
         project.addMembers(user);
+
+        log.info("Creating project completed. New project number " + project.getID() + " with name '" + project.getName() + "' and owner '" + project.getOwnerName() + "' created");
         return true;
     }
 
     private Project chooseProject() {
+        log.debug("Method ChooseProject invoked");
         Project project = null;
 
         System.console().printf("Show list of all projects? (y|n)\n");
@@ -339,18 +340,24 @@ public class BugTracker{
             String choice = System.console().readLine("> ");
             switch (choice) {
                 case "id":
+                    log.debug("Find project by id");
                     String id = System.console().readLine("id: ");
                     if (id.matches("\\d+") && Integer.parseInt(id)<=projectService.countProjects()) {
                         project = projectService.findProjectById(Integer.parseInt(id));
+                        log.debug("In the list of projects search by id " + id);
                     } else {
+                        log.debug("Project with id " + id + " not found");
                         System.console().printf("Wrong id.\n");
                     }
                     break;
                 case "name":
+                    log.debug("Find by name");
                     String name = System.console().readLine("Name: ");
                     project = projectService.findProjectByName(name);
+                    log.debug("In the list of projects search by name '" + name + "'");
                     break;
                 case "q":
+                    log.debug("Quit find project loop by type 'q'");
                     endLoop = true;
                     break;
                 default:
@@ -358,23 +365,35 @@ public class BugTracker{
                     break;
             }
             if (project==null) {
+                log.debug("Project = null");
                 System.console().printf("Project not found. Try again? (y|n)\n");
                 String again = System.console().readLine("> ");
+                log.debug("Try again answer '" + again + "'");
                 endLoop = !again.equals("y");
             } else {
                 endLoop = true;
             }
         }
+
+        if (project == null) {
+            log.debug("Method chooseProject return null");
+        } else {
+            log.debug("Method chooseProject return project: " + project.toString());
+        }
+
         return project;
     }
 
     private boolean addMembersToProject() {
+        log.info("Start adding members to project");
         Project project = chooseProject();
         if (project==null) {
+            log.info("Adding members failed. Project not found.");
             System.console().printf("You can add members only for existing project.\n");
             return false;
         }
 
+        log.info("Members will be added to the project " + project.getID() + " '" + project.getName() + "'");
         System.console().printf("Show members for this project? (y|n)\n");
         String show = System.console().readLine(">");
         if (show.equals("y")) {
@@ -383,17 +402,24 @@ public class BugTracker{
 
         boolean endLoop = false;
         while (!endLoop) {
+            log.info("Start adding member");
             User user = chooseUser();
             if (user == null) {
+                log.info("Member to add not found");
                 System.console().printf("User not found. Try again? (y|n)\n");
                 String again = System.console().readLine("> ");
                 endLoop = !again.equals("y");
+                log.debug("Try again answer '" + again + "'");
             } else {
+                project.addMember(user);
+                log.info("Found member to add. User number " + user.getID() + " added as member to the project");
                 System.console().printf("User added successfully. Add another one? (y|n)\n");
                 String anotherOne = System.console().readLine("> ");
+                log.debug("Add one more member answer '" + anotherOne + "'");
                 endLoop = !anotherOne.equals("y");
             }
         }
+        log.info("Adding members ended");
         return true;
     }
 

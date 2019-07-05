@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class Project implements Serializable {
+public class Project {
     private final int ID;
     private String name;
     private String description;
